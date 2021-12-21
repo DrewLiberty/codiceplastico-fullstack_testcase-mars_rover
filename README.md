@@ -1,2 +1,2 @@
-# codiceplastico-fullstack_testcase-mars_rover
+# CodicePlastico Fullstack TestCase Mars Rover
 CodicePlastico admission test for candidates
