@@ -14,9 +14,9 @@ enum Commands {
 
 class Rover {
   constructor (
-    public x: number,
-    public y: number,
-    public direction: Direction
+    public x: number = 0,
+    public y: number = 0,
+    public direction: Direction = Direction.Nord
   ) {}
 }
 

@@ -4,12 +4,12 @@ import setupService from '../services/setup'
 import validationService from '../services/validation'
 
 const routes = {
-  index: function (req: express.Request, res: express.Response) {
+  createRover: function (req: express.Request, res: express.Response) {
     const { x, y, direction } = req.body
 
-    const roverModel = setupService.create({ x, y, direction })
+    const rover = setupService.create({ x, y, direction })
 
-    req.session.rover = roverModel
+    req.session.rover = rover
 
     res.status(201).send({
       id: req.sessionID,
@@ -25,17 +25,17 @@ export default () => {
     '/',
     [
       body('x')
-        .isInt({ min: -90, max: +90 })
-        .withMessage('X coordinate must be a number between -90 and +90'),
-      body('y')
         .isInt({ min: -180, max: +180 })
         .withMessage('X coordinate must be a number between -180 and +180'),
+      body('y')
+        .isInt({ min: -90, max: +90 })
+        .withMessage('X coordinate must be a number between -90 and +90'),
       body('direction')
         .isIn(['N', 'E', 'S', 'W'])
         .withMessage('Direction value must be one of N, E, S, W')
     ],
     validationService.isValid,
-    routes.index
+    routes.createRover
   )
 
   return route

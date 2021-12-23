@@ -10,6 +10,17 @@ const validationService = {
     const errors = validationResult(req)
     if (!errors.isEmpty()) return res.status(422).json(errors.array())
     else next()
+  },
+  roverExists (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
+    if (req.session.rover === undefined)
+      res.status(400).send({
+        message: 'You need to create a rover in order to use the actions'
+      })
+    next()
   }
 }
 

@@ -8,7 +8,7 @@ const maxColumns = 360
 
 // 0 --> empty
 // 1 --> obstacle
-export default class Surface {
+class Surface {
   public matrix: Matrix
   public startRow: number
   public startColumn: number
@@ -59,6 +59,19 @@ export default class Surface {
       col <= this.matrix.columns &&
       this.matrix.get(row, col) === 1
     )
+  }
+  public setPosition ({
+    row,
+    column,
+    direction
+  }: {
+    row: number
+    column: number
+    direction: Direction
+  }): void {
+    this.currentRow = row
+    this.currentColumn = column
+    this.currentDirection = direction
   }
 
   public calcNextMove (
@@ -126,6 +139,7 @@ export default class Surface {
           this.commands.push(Commands.Right)
           break
         default:
+          throw new Error('Unexpected direction')
           break
       }
 
@@ -133,14 +147,8 @@ export default class Surface {
       this.currentColumn = nextCol
     }
 
-    const rowAsLatitude =
-      this.currentRow > unsignedLatitude
-        ? unsignedLatitude - this.currentRow
-        : this.currentRow - unsignedLatitude
-    const rowAsLongitude =
-      this.currentColumn > unsignedLongitude
-        ? unsignedLongitude - this.currentColumn
-        : this.currentColumn - unsignedLongitude
+    const rowAsLatitude = Surface.convertRowAsLatitude(this.currentRow)
+    const rowAsLongitude = Surface.convertColumnAsLongitude(this.currentColumn)
 
     return {
       x: rowAsLongitude,
@@ -149,4 +157,59 @@ export default class Surface {
       commands: this.commands
     }
   }
+
+  public static convertRowAsLatitude (value: number) {
+    return value > unsignedLatitude
+      ? unsignedLatitude - value
+      : value - unsignedLatitude
+  }
+  public static convertColumnAsLongitude (value: number) {
+    return value > unsignedLongitude
+      ? unsignedLongitude - value
+      : value - unsignedLongitude
+  }
+
+  public static convertLatitudeAsRow (value: number) {
+    return unsignedLatitude + value
+  }
+  public static convertLongitudeAsColumn (value: number) {
+    return unsignedLongitude + value
+  }
+
+  public static calcObstaclePosition ({
+    row,
+    column,
+    direction
+  }: {
+    row: number
+    column: number
+    direction: string
+  }) {
+    const directionEnum = (<any>Direction)[direction]
+
+    switch (directionEnum) {
+      case Direction.Nord:
+        row += 1
+        break
+      case Direction.Sud:
+        row -= 1
+        break
+      case Direction.Ovest:
+        column -= 1
+        break
+      case Direction.Est:
+        column += 1
+        break
+      default:
+        break
+    }
+
+    return {
+      row,
+      column,
+      direction: directionEnum
+    }
+  }
 }
+
+export { unsignedLatitude, unsignedLongitude, maxRows, maxColumns, Surface }
