@@ -5,6 +5,13 @@ enum Direction {
   Ovest = 'O'
 }
 
+enum Commands {
+  Forward = 'F',
+  Backward = 'B',
+  Left = 'L',
+  Right = 'R'
+}
+
 class Rover {
   constructor (
     public x: number,
@@ -13,4 +20,4 @@ class Rover {
   ) {}
 }
 
-export { Rover, Direction }
+export { Direction, Commands, Rover }
