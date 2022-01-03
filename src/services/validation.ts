@@ -1,5 +1,6 @@
 import express from 'express'
 import { validationResult } from 'express-validator'
+import { Surface } from '../models/surface'
 
 const validationService = {
   isValid (
@@ -20,6 +21,25 @@ const validationService = {
       return res.status(400).send({
         message: 'You need to create a rover in order to use the actions'
       })
+    next()
+  },
+  parseSurface (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) {
+    const surface = req.session.surface || null
+
+    if (surface === null) req.session.surface = new Surface()
+    else
+      req.session.surface = new Surface(
+        surface.startRow,
+        surface.startColumn,
+        surface.startDirection,
+        surface.currentRow,
+        surface.currentColumn,
+        surface.currentDirection
+      )
     next()
   }
 }

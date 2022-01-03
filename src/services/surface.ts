@@ -16,8 +16,8 @@ const setupService = () => {
       const startColumn = Surface.convertLongitudeToColumn(x)
       return new Surface(startRow, startColumn, (<any>Direction)[direction])
     },
-    getJourney (surface: Surface) {
-      return surface.calcJourney()
+    async getJourney (surface: Surface) {
+      return await surface.calcJourneyRecursive().then(v => v)
     },
     reportObstacle (
       surface: Surface,

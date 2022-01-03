@@ -7,6 +7,9 @@ const unsignedLongitude = 180
 const maxRows = 180
 const maxColumns = 360
 
+const timeout = (ms: number = 0) =>
+  new Promise(resolve => setTimeout(resolve, ms))
+
 // X --> current position
 // 0 --> not scanned
 // 1 --> scanned and empty
@@ -21,16 +24,23 @@ class Surface {
   public currentDirection: Direction
   public commands: Array<String>
 
-  constructor (startRow = 0, startColumn = 0, startDirection = Direction.Nord) {
+  constructor (
+    startRow = 0,
+    startColumn = 0,
+    startDirection = Direction.Nord,
+    currentRow = 0,
+    currentColumn = 0,
+    currentDirection = Direction.Nord
+  ) {
     this.matrix = Matrix.ones(maxRows, maxColumns)
 
     this.startRow = startRow
     this.startColumn = startColumn
     this.startDirection = startDirection
 
-    this.currentRow = this.startRow
-    this.currentColumn = this.startColumn
-    this.currentDirection = this.startDirection
+    this.currentRow = currentRow
+    this.currentColumn = currentColumn
+    this.currentDirection = currentDirection
 
     this.commands = []
 
@@ -76,16 +86,6 @@ class Surface {
     return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 1
   }
   public isObstacle (row: number, col: number): boolean {
-    // console.log('===========')
-    // console.log(row)
-    // console.log(col)
-    // if (
-    //   row >= 0 &&
-    //   col >= 0 &&
-    //   row <= this.matrix.rows - 1 &&
-    //   col <= this.matrix.columns - 1
-    // )
-    //   console.log(this.matrix.get(row, col))
     return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 2
   }
 
@@ -103,12 +103,24 @@ class Surface {
     this.currentDirection = direction
   }
 
-  public calcNextMove (
-    currentRow: number = this.currentRow,
-    currentColumn: number = this.currentColumn
-  ): any {
-    if (currentRow == this.matrix.rows) currentRow = 0
-    if (currentColumn == this.matrix.columns) currentColumn = 0
+  public calcNextMove ({
+    currentRow = this.currentRow,
+    currentColumn = this.currentColumn,
+    forceSearch = false,
+    previousPositions = []
+  }: {
+    currentRow: number
+    currentColumn: number
+    forceSearch: boolean
+    previousPositions: Array<any>
+  }): any {
+    if (
+      currentRow == this.matrix.rows - 1 &&
+      currentColumn == this.matrix.columns - 1
+    ) {
+      currentRow = 0
+      currentColumn = -1
+    }
 
     let ways: Array<any> = [
       {
@@ -139,21 +151,31 @@ class Surface {
 
     ways = ways.map(el => {
       if (
-        this.isNotScanned(el.row, el.col) === true &&
+        this.isValidCoordinate(el.row, el.col) === true &&
         this.isObstacle(el.row, el.col) !== true
-      )
-        el.valid = true
+      ) {
+        if (
+          this.isNotScanned(el.row, el.col) === true ||
+          (forceSearch === true &&
+            previousPositions.filter(v => v.row == el.row && v.col == el.col)
+              .length === 0)
+        )
+          el.valid = true
+      }
 
       return el
     })
-
-    console.log(ways)
 
     const firstValidWay = ways.filter(el => el.valid === true).shift()
 
     if (firstValidWay === undefined) {
       this.toFile()
-      throw new Error('Blocked! Look at the map.txt file for a visual output')
+      if (forceSearch === true)
+        throw new Error('Blocked! Look at the map.txt file for a visual output')
+      else
+        return {
+          error: true
+        }
     }
 
     this.addEmpty(firstValidWay.row, firstValidWay.col)
@@ -163,49 +185,64 @@ class Surface {
     return firstValidWay
   }
 
-  public calcJourney () {
-    for (let i = 0; i < this.matrix.size; i++) {
-      if (this.isAllScanned() === true) break
-
-      let {
-        key: nextDirection,
-        row: nextRow,
-        col: nextCol
-      } = this.calcNextMove(this.currentRow, this.currentColumn)
-      // let newPosition = this.matrix.get(nextRow, nextCol)
-
-      switch (nextDirection) {
-        case Direction.Nord:
-          this.commands.push(Commands.Forward)
-          break
-        case Direction.Sud:
-          this.commands.push(Commands.Backward)
-          break
-        case Direction.Ovest:
-          this.commands.push(Commands.Left)
-          break
-        case Direction.Est:
-          this.commands.push(Commands.Right)
-          break
-        default:
-          throw new Error('Unexpected direction')
-          break
+  public async calcJourneyRecursive (
+    force: boolean = false,
+    previousPositions: Array<any> = []
+  ): Promise<any> {
+    if (this.isAllScanned() === true) {
+      this.toFile()
+      return {
+        x: Surface.convertColumnToLongitude(this.currentColumn),
+        y: Surface.convertRowToLatitude(this.currentRow),
+        direction: this.currentDirection,
+        commands: this.commands
       }
-
-      this.currentRow = nextRow
-      this.currentColumn = nextCol
     }
-    console.log('Row: ' + this.currentRow)
-    console.log('Column: ' + this.currentColumn)
 
-    this.toFile()
+    const {
+      key: nextDirection,
+      row: nextRow,
+      col: nextCol,
+      error: _error
+    } = this.calcNextMove({
+      currentRow: this.currentRow,
+      currentColumn: this.currentColumn,
+      forceSearch: force,
+      previousPositions
+    })
+    if (_error === true)
+      return await this.calcJourneyRecursive(true, previousPositions)
 
-    return {
-      x: Surface.convertColumnToLongitude(this.currentColumn),
-      y: Surface.convertRowToLatitude(this.currentRow),
-      direction: this.currentDirection,
-      commands: this.commands
+    switch (nextDirection) {
+      case Direction.Nord:
+        this.commands.push(Commands.Forward)
+        break
+      case Direction.Sud:
+        this.commands.push(Commands.Backward)
+        break
+      case Direction.Ovest:
+        this.commands.push(Commands.Left)
+        break
+      case Direction.Est:
+        this.commands.push(Commands.Right)
+        break
+      default:
+        throw new Error('Unexpected direction')
+        break
     }
+
+    this.currentRow = nextRow
+    this.currentColumn = nextCol
+
+    if (force === true)
+      previousPositions.push({
+        row: this.currentRow,
+        col: this.currentColumn
+      })
+
+    // Prevent Maximum call stack size exceeded error
+    await timeout()
+    return await this.calcJourneyRecursive(force, previousPositions)
   }
 
   // =================================================
@@ -214,7 +251,7 @@ class Surface {
   public static convertRowToLatitude (value: number) {
     if (value !== 0) value += 1
     return value > unsignedLatitude
-      ? 0 - unsignedLatitude - value
+      ? unsignedLatitude + (0 - value)
       : unsignedLatitude - value
   }
   public static convertColumnToLongitude (value: number) {

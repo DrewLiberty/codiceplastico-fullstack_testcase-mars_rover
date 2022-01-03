@@ -22,9 +22,9 @@ const routes = {
       surface: req.session.surface
     })
   },
-  getJourney: function (req: express.Request, res: express.Response) {
+  getJourney: async function (req: express.Request, res: express.Response) {
     const surface = req.session.surface || new Surface()
-    const journey = surfaceService.getJourney(surface)
+    const journey = await surfaceService.getJourney(surface)
 
     res.status(201).send({
       id: req.sessionID,
@@ -50,7 +50,12 @@ export default () => {
 
   route.post('/surface', validationService.roverExists, routes.createSurface)
 
-  route.get('/journey', validationService.roverExists, routes.getJourney)
+  route.get(
+    '/journey',
+    validationService.roverExists,
+    validationService.parseSurface,
+    routes.getJourney
+  )
 
   route.post(
     '/report',
@@ -66,6 +71,7 @@ export default () => {
         .withMessage('Direction value must be one of N, E, S, W')
     ],
     validationService.roverExists,
+    validationService.parseSurface,
     routes.reportObstacle
   )
 
