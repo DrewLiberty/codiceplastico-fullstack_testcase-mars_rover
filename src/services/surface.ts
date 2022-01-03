@@ -43,14 +43,11 @@ const setupService = () => {
         direction
       })
 
-      console.log('Row ' + obstacleRow)
-      console.log('Column ' + obstacleColumn)
-
       surface.addObstacle(obstacleRow, obstacleColumn)
       surface.setPosition({
         row: currentRow,
         column: currentColumn,
-        direction: (<any>Direction)[direction]
+        direction
       })
 
       surface.toFile()

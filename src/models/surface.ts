@@ -18,19 +18,19 @@ class Surface {
   public matrix: Matrix
   public startRow: number
   public startColumn: number
-  public startDirection: Direction
+  public startDirection: string
   public currentRow: number
   public currentColumn: number
-  public currentDirection: Direction
+  public currentDirection: string
   public commands: Array<String>
 
   constructor (
-    startRow = 0,
-    startColumn = 0,
-    startDirection = Direction.Nord,
-    currentRow = 0,
-    currentColumn = 0,
-    currentDirection = Direction.Nord
+    startRow: number = 0,
+    startColumn: number = 0,
+    startDirection: string = Direction.Nord,
+    currentRow: number = 0,
+    currentColumn: number = 0,
+    currentDirection: string = Direction.Nord
   ) {
     this.matrix = Matrix.ones(maxRows, maxColumns)
 
@@ -96,7 +96,7 @@ class Surface {
   }: {
     row: number
     column: number
-    direction: Direction
+    direction: string
   }): void {
     this.currentRow = row
     this.currentColumn = column
@@ -275,9 +275,7 @@ class Surface {
     column: number
     direction: string
   }) {
-    const directionEnum = (<any>Direction)[direction]
-
-    switch (directionEnum) {
+    switch (direction) {
       case Direction.Nord:
         row += 1
         break
@@ -297,7 +295,7 @@ class Surface {
     return {
       row,
       column,
-      direction: directionEnum
+      direction
     }
   }
 
@@ -322,8 +320,9 @@ class Surface {
       for (let col = 0; col < this.matrix.columns; col++) {
         if (col != 0 && col != this.matrix.columns) output += ' | '
 
-        if (row == this.currentRow && col == this.currentColumn) output += 'X'
-        else output += this.matrix.get(row, col)
+        // if (row == this.currentRow && col == this.currentColumn) output += 'X'
+        // else output += this.matrix.get(row, col)
+        output += this.matrix.get(row, col)
       }
       output += '\r\n'
     }

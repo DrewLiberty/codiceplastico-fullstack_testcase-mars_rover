@@ -16,7 +16,7 @@ class Rover {
   constructor (
     public x: number = 0,
     public y: number = 0,
-    public direction: Direction = Direction.Nord
+    public direction: string = Direction.Nord
   ) {}
 }
 
