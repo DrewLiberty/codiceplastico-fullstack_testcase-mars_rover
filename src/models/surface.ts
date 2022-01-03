@@ -13,7 +13,7 @@ const timeout = (ms: number = 0) =>
 // X --> current position
 // 0 --> not scanned
 // 1 --> scanned and empty
-// 2 -->scanned and NOT clear
+// 2 --> scanned and NOT clear
 class Surface {
   public matrix: Matrix
   public startRow: number

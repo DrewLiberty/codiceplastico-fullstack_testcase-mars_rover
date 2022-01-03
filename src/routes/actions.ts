@@ -70,6 +70,7 @@ export default () => {
         .isIn(['N', 'E', 'S', 'W'])
         .withMessage('Direction value must be one of N, E, S, W')
     ],
+    validationService.isValid,
     validationService.roverExists,
     validationService.parseSurface,
     routes.reportObstacle

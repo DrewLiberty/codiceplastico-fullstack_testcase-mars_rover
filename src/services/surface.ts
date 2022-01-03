@@ -33,18 +33,27 @@ const setupService = () => {
     ) {
       const currentRow = Surface.convertLatitudeToRow(y)
       const currentColumn = Surface.convertLongitudeToColumn(x)
-      const obstaclePosition = Surface.calcObstaclePosition({
+      const {
+        row: obstacleRow,
+        column: obstacleColumn,
+        direction: obstacleDirection
+      } = Surface.calcObstaclePosition({
         row: currentRow,
         column: currentColumn,
         direction
       })
 
-      surface.addObstacle(obstaclePosition.row, obstaclePosition.column)
+      console.log('Row ' + obstacleRow)
+      console.log('Column ' + obstacleColumn)
+
+      surface.addObstacle(obstacleRow, obstacleColumn)
       surface.setPosition({
         row: currentRow,
         column: currentColumn,
         direction: (<any>Direction)[direction]
       })
+
+      surface.toFile()
     }
   }
 }
