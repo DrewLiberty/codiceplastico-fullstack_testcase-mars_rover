@@ -198,14 +198,11 @@ class Surface {
     console.log('Row: ' + this.currentRow)
     console.log('Column: ' + this.currentColumn)
 
-    const rowAsLatitude = Surface.convertRowToLatitude(this.currentRow)
-    const rowAsLongitude = Surface.convertColumnToLongitude(this.currentColumn)
-
     this.toFile()
 
     return {
-      x: rowAsLongitude,
-      y: rowAsLatitude,
+      x: Surface.convertColumnToLongitude(this.currentColumn),
+      y: Surface.convertRowToLatitude(this.currentRow),
       direction: this.currentDirection,
       commands: this.commands
     }
@@ -215,20 +212,22 @@ class Surface {
   // STATIC HELPERS
   // =================================================
   public static convertRowToLatitude (value: number) {
+    if (value !== 0) value += 1
     return value > unsignedLatitude
-      ? value - unsignedLatitude
+      ? 0 - unsignedLatitude - value
       : unsignedLatitude - value
   }
   public static convertColumnToLongitude (value: number) {
+    if (value !== 0) value += 1
     return value > unsignedLongitude
       ? value - unsignedLongitude
-      : unsignedLongitude - value
+      : 0 - unsignedLongitude + value
   }
   public static convertLatitudeToRow (value: number) {
-    return unsignedLatitude + value
+    return unsignedLatitude - 1 + value
   }
   public static convertLongitudeToColumn (value: number) {
-    return unsignedLongitude + value
+    return unsignedLongitude - 1 + value
   }
   public static calcObstaclePosition ({
     row,
