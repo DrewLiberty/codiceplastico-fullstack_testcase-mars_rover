@@ -50,7 +50,7 @@ export default () => {
 
   route.post('/surface', validationService.roverExists, routes.createSurface)
 
-  route.get('/journey', validationService.roverExists, routes.reportObstacle)
+  route.get('/journey', validationService.roverExists, routes.getJourney)
 
   route.post(
     '/report',

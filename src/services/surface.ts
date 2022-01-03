@@ -12,8 +12,8 @@ const setupService = () => {
       y: number
       direction: string
     }): Surface {
-      const startRow = Surface.convertLatitudeAsRow(y)
-      const startColumn = Surface.convertLongitudeAsColumn(x)
+      const startRow = Surface.convertLatitudeToRow(y)
+      const startColumn = Surface.convertLongitudeToColumn(x)
       return new Surface(startRow, startColumn, (<any>Direction)[direction])
     },
     getJourney (surface: Surface) {
@@ -31,8 +31,8 @@ const setupService = () => {
         direction: string
       }
     ) {
-      const currentRow = Surface.convertLatitudeAsRow(y)
-      const currentColumn = Surface.convertLongitudeAsColumn(x)
+      const currentRow = Surface.convertLatitudeToRow(y)
+      const currentColumn = Surface.convertLongitudeToColumn(x)
       const obstaclePosition = Surface.calcObstaclePosition({
         row: currentRow,
         column: currentColumn,

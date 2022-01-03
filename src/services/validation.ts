@@ -17,7 +17,7 @@ const validationService = {
     next: express.NextFunction
   ) {
     if (req.session.rover === undefined)
-      res.status(400).send({
+      return res.status(400).send({
         message: 'You need to create a rover in order to use the actions'
       })
     next()

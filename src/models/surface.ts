@@ -1,13 +1,16 @@
 import { Matrix } from 'ml-matrix'
 import { Direction, Commands } from './rover'
+import fs from 'fs'
 
 const unsignedLatitude = 90
 const unsignedLongitude = 180
 const maxRows = 180
 const maxColumns = 360
 
-// 0 --> empty
-// 1 --> obstacle
+// X --> current position
+// 0 --> not scanned
+// 1 --> scanned and empty
+// 2 -->scanned and NOT clear
 class Surface {
   public matrix: Matrix
   public startRow: number
@@ -37,7 +40,7 @@ class Surface {
   public initialize () {
     for (let row = 0; row < this.matrix.rows; row++) {
       for (let col = 0; col < this.matrix.columns; col++) {
-        this.addEmpty(row, col)
+        this.addNotScanned(row, col)
       }
     }
 
@@ -45,21 +48,47 @@ class Surface {
     this.currentColumn = this.startColumn
     this.currentDirection = this.startDirection
     this.commands = []
+
+    this.addEmpty(this.currentRow, this.currentColumn)
   }
 
-  public addEmpty (row: number, col: number): void {
+  public addNotScanned (row: number, col: number): void {
     this.matrix.set(row, col, 0)
   }
-  public addObstacle (row: number, col: number): void {
+  public addEmpty (row: number, col: number): void {
     this.matrix.set(row, col, 1)
   }
-  public isObstacle (row: number, col: number): boolean {
+  public addObstacle (row: number, col: number): void {
+    this.matrix.set(row, col, 2)
+  }
+  public isValidCoordinate (row: number, col: number): boolean {
     return (
-      row <= this.matrix.rows &&
-      col <= this.matrix.columns &&
-      this.matrix.get(row, col) === 1
+      row >= 0 &&
+      col >= 0 &&
+      row <= this.matrix.rows - 1 &&
+      col <= this.matrix.columns - 1
     )
   }
+  public isNotScanned (row: number, col: number): boolean {
+    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 0
+  }
+  public isScanned (row: number, col: number): boolean {
+    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 1
+  }
+  public isObstacle (row: number, col: number): boolean {
+    // console.log('===========')
+    // console.log(row)
+    // console.log(col)
+    // if (
+    //   row >= 0 &&
+    //   col >= 0 &&
+    //   row <= this.matrix.rows - 1 &&
+    //   col <= this.matrix.columns - 1
+    // )
+    //   console.log(this.matrix.get(row, col))
+    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 2
+  }
+
   public setPosition ({
     row,
     column,
@@ -78,6 +107,9 @@ class Surface {
     currentRow: number = this.currentRow,
     currentColumn: number = this.currentColumn
   ): any {
+    if (currentRow == this.matrix.rows) currentRow = 0
+    if (currentColumn == this.matrix.columns) currentColumn = 0
+
     let ways: Array<any> = [
       {
         key: Direction.Nord,
@@ -106,18 +138,35 @@ class Surface {
     ]
 
     ways = ways.map(el => {
-      if (!this.isObstacle(el.row, el.col)) return { ...el, valid: true }
+      if (
+        this.isNotScanned(el.row, el.col) === true &&
+        this.isObstacle(el.row, el.col) !== true
+      )
+        el.valid = true
+
+      return el
     })
 
+    console.log(ways)
+
     const firstValidWay = ways.filter(el => el.valid === true).shift()
-    if (firstValidWay) return firstValidWay
-    else {
-      throw new Error('Blocked')
+
+    if (firstValidWay === undefined) {
+      this.toFile()
+      throw new Error('Blocked! Look at the map.txt file for a visual output')
     }
+
+    this.addEmpty(firstValidWay.row, firstValidWay.col)
+    console.log(
+      `Moving to ${firstValidWay.row} | ${firstValidWay.col} | ${firstValidWay.key}`
+    )
+    return firstValidWay
   }
 
   public calcJourney () {
     for (let i = 0; i < this.matrix.size; i++) {
+      if (this.isAllScanned() === true) break
+
       let {
         key: nextDirection,
         row: nextRow,
@@ -146,9 +195,13 @@ class Surface {
       this.currentRow = nextRow
       this.currentColumn = nextCol
     }
+    console.log('Row: ' + this.currentRow)
+    console.log('Column: ' + this.currentColumn)
 
-    const rowAsLatitude = Surface.convertRowAsLatitude(this.currentRow)
-    const rowAsLongitude = Surface.convertColumnAsLongitude(this.currentColumn)
+    const rowAsLatitude = Surface.convertRowToLatitude(this.currentRow)
+    const rowAsLongitude = Surface.convertColumnToLongitude(this.currentColumn)
+
+    this.toFile()
 
     return {
       x: rowAsLongitude,
@@ -158,24 +211,25 @@ class Surface {
     }
   }
 
-  public static convertRowAsLatitude (value: number) {
+  // =================================================
+  // STATIC HELPERS
+  // =================================================
+  public static convertRowToLatitude (value: number) {
     return value > unsignedLatitude
-      ? unsignedLatitude - value
-      : value - unsignedLatitude
+      ? value - unsignedLatitude
+      : unsignedLatitude - value
   }
-  public static convertColumnAsLongitude (value: number) {
+  public static convertColumnToLongitude (value: number) {
     return value > unsignedLongitude
-      ? unsignedLongitude - value
-      : value - unsignedLongitude
+      ? value - unsignedLongitude
+      : unsignedLongitude - value
   }
-
-  public static convertLatitudeAsRow (value: number) {
+  public static convertLatitudeToRow (value: number) {
     return unsignedLatitude + value
   }
-  public static convertLongitudeAsColumn (value: number) {
+  public static convertLongitudeToColumn (value: number) {
     return unsignedLongitude + value
   }
-
   public static calcObstaclePosition ({
     row,
     column,
@@ -209,6 +263,39 @@ class Surface {
       column,
       direction: directionEnum
     }
+  }
+
+  // =================================================
+  // OTHERS
+  // =================================================
+  public isAllScanned () {
+    let result = true
+
+    for (let row = 0; row < this.matrix.rows; row++) {
+      for (let col = 0; col < this.matrix.columns; col++) {
+        if (this.isScanned(row, col) !== true) result = false
+      }
+    }
+
+    return result
+  }
+  public toString = (): string => {
+    let output = ''
+
+    for (let row = 0; row < this.matrix.rows; row++) {
+      for (let col = 0; col < this.matrix.columns; col++) {
+        if (col != 0 && col != this.matrix.columns) output += ' | '
+
+        if (row == this.currentRow && col == this.currentColumn) output += 'X'
+        else output += this.matrix.get(row, col)
+      }
+      output += '\r\n'
+    }
+
+    return output
+  }
+  public toFile () {
+    fs.writeFileSync('map.txt', this.toString())
   }
 }
 
