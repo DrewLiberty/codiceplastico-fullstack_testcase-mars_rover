@@ -3,22 +3,48 @@
 
 <head>
   <title>Journey stream</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
+<body class="w-screen h-screen flex flex-col">
 
-  <div id="content" style="background-color: green;">
-
+  <!-- This example requires Tailwind CSS v2.0+ -->
+  <div class="relative bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+      <div class="flex justify-center items-center border-b-2 border-gray-100 py-6">
+        <button type="button" onclick="start()"
+          class="text-gray-500 group bg-gray-200 rounded-md inline-flex items-center text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 py-2 px-12">
+          Start
+        </button>
+      </div>
+    </div>
   </div>
 
+  <div class="grow grid grid-cols-360 grid-rows-180 bg-gray-500">
+    <span>01</span>
+    <span>02</span>
+    <span>03</span>
+    <span>04</span>
+    <span>05</span>
+    <span>06</span>
+  </div>
+
+
+
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script>
     var socket = io();
+    var $table = $('#table')
 
-    socket.emit('getJourneyStreamed')
+    function start() {
+      socket.emit('getJourneyStreamed')
+    }
 
     socket.on('message', function (message) {
-      document.getElementById("content").innerHTML = message;
+      // document.getElementById("content").innerHTML = message;
+      // console.log(message)
     });
   </script>
 </body>
