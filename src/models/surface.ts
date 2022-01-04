@@ -169,7 +169,7 @@ class Surface {
           this.isNotScanned(el.location) === true ||
           (forceSearch === true &&
             previousLocations.filter(
-              v => v.row == el.row && v.column == el.column
+              v => v.row == el.location.row && v.column == el.location.column
             ).length === 0)
         )
           el.valid = true
