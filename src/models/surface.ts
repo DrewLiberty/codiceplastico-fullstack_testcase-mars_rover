@@ -190,7 +190,7 @@ class Surface {
         }
     }
 
-    this.addEmpty(firstValidWay.coordinate)
+    this.addEmpty(firstValidWay.location)
     console.log(
       `Moving to ${firstValidWay.location.row} | ${firstValidWay.location.column} | ${firstValidWay.location.direction}`
     )
