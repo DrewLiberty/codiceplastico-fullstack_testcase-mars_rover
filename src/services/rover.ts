@@ -1,4 +1,4 @@
-import { Rover, Direction } from '../models/rover'
+import { Rover } from '../models/rover'
 
 const setupService = () => {
   return {

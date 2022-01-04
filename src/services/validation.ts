@@ -1,6 +1,7 @@
 import express from 'express'
 import { validationResult } from 'express-validator'
-import { Surface } from '../models/surface'
+import { Direction } from '../models/rover'
+import { Coordinate, Surface } from '../models/surface'
 
 const validationService = {
   isValid (
@@ -28,18 +29,21 @@ const validationService = {
     res: express.Response,
     next: express.NextFunction
   ) {
-    const surface = req.session.surface || null
-
-    if (surface === null) req.session.surface = new Surface()
-    else
-      req.session.surface = new Surface(
-        surface.startRow,
-        surface.startColumn,
-        surface.startDirection,
-        surface.currentRow,
-        surface.currentColumn,
-        surface.currentDirection
+    if (req.session.surface === undefined)
+      return res.status(400).send({
+        message: 'You need to create a surface in order to use the actions'
+      })
+    else {
+      const sessionSurface = req.session.surface
+      const surface = new Surface(
+        sessionSurface.startLocation,
+        sessionSurface.currentLocation
       )
+      surface.load(sessionSurface.matrix as any)
+
+      req.session.surface = surface
+    }
+
     next()
   }
 }

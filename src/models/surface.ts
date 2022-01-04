@@ -7,40 +7,35 @@ const unsignedLongitude = 180
 const maxRows = 180
 const maxColumns = 360
 
+enum LocationStatus {
+  CURRENT = 'X',
+  NOT_SCANNED = 0,
+  EMPTY = 1,
+  OBSTACLE = 2
+}
+interface Coordinate {
+  row: number
+  column: number
+  direction: string
+}
+
 const timeout = (ms: number = 0) =>
   new Promise(resolve => setTimeout(resolve, ms))
 
-// X --> current position
-// 0 --> not scanned
-// 1 --> scanned and empty
-// 2 --> scanned and NOT clear
 class Surface {
   public matrix: Matrix
-  public startRow: number
-  public startColumn: number
-  public startDirection: string
-  public currentRow: number
-  public currentColumn: number
-  public currentDirection: string
+  public startLocation: Coordinate
+  public currentLocation: Coordinate
   public commands: Array<String>
 
-  constructor (
-    startRow: number = 0,
-    startColumn: number = 0,
-    startDirection: string = Direction.Nord,
-    currentRow: number = 0,
-    currentColumn: number = 0,
-    currentDirection: string = Direction.Nord
-  ) {
+  constructor (start: Coordinate, current?: Coordinate) {
     this.matrix = Matrix.ones(maxRows, maxColumns)
 
-    this.startRow = startRow
-    this.startColumn = startColumn
-    this.startDirection = startDirection
+    this.startLocation = this.currentLocation = start
 
-    this.currentRow = currentRow
-    this.currentColumn = currentColumn
-    this.currentDirection = currentDirection
+    if (current) {
+      this.currentLocation = current
+    }
 
     this.commands = []
 
@@ -49,116 +44,133 @@ class Surface {
 
   public initialize () {
     for (let row = 0; row < this.matrix.rows; row++) {
-      for (let col = 0; col < this.matrix.columns; col++) {
-        this.addNotScanned(row, col)
+      for (let column = 0; column < this.matrix.columns; column++) {
+        this.addNotScanned(<Coordinate>{ row, column })
       }
     }
 
-    this.currentRow = this.startRow
-    this.currentColumn = this.startColumn
-    this.currentDirection = this.startDirection
+    this.currentLocation = this.startLocation
     this.commands = []
 
-    this.addEmpty(this.currentRow, this.currentColumn)
+    this.addEmpty(this.currentLocation)
   }
 
-  public addNotScanned (row: number, col: number): void {
-    this.matrix.set(row, col, 0)
-  }
-  public addEmpty (row: number, col: number): void {
-    this.matrix.set(row, col, 1)
-  }
-  public addObstacle (row: number, col: number): void {
-    this.matrix.set(row, col, 2)
-  }
-  public isValidCoordinate (row: number, col: number): boolean {
-    return (
-      row >= 0 &&
-      col >= 0 &&
-      row <= this.matrix.rows - 1 &&
-      col <= this.matrix.columns - 1
+  public load (matrix: Array<Array<number>>) {
+    matrix.forEach((element, row) =>
+      element.forEach((value, column) => {
+        let location = <Coordinate>{ row, column }
+        if (value === LocationStatus.NOT_SCANNED) this.addNotScanned(location)
+        if (value === LocationStatus.EMPTY) this.addEmpty(location)
+        if (value === LocationStatus.OBSTACLE) this.addObstacle(location)
+      })
     )
   }
-  public isNotScanned (row: number, col: number): boolean {
-    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 0
+
+  public addNotScanned (location: Coordinate): void {
+    this.matrix.set(location.row, location.column, LocationStatus.NOT_SCANNED)
   }
-  public isScanned (row: number, col: number): boolean {
-    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 1
+  public addEmpty (location: Coordinate): void {
+    this.matrix.set(location.row, location.column, LocationStatus.EMPTY)
   }
-  public isObstacle (row: number, col: number): boolean {
-    return this.isValidCoordinate(row, col) && this.matrix.get(row, col) === 2
+  public addObstacle (location: Coordinate): void {
+    this.matrix.set(location.row, location.column, LocationStatus.OBSTACLE)
   }
 
-  public setPosition ({
-    row,
-    column,
-    direction
-  }: {
-    row: number
-    column: number
-    direction: string
-  }): void {
-    this.currentRow = row
-    this.currentColumn = column
-    this.currentDirection = direction
+  public isValid (location: Coordinate): boolean {
+    return (
+      location.row >= 0 &&
+      location.column >= 0 &&
+      location.row <= this.matrix.rows - 1 &&
+      location.column <= this.matrix.columns - 1
+    )
+  }
+  public isNotScanned (location: Coordinate): boolean {
+    return (
+      this.isValid(location) &&
+      this.matrix.get(location.row, location.column) ===
+        LocationStatus.NOT_SCANNED
+    )
+  }
+  public isEmpty (location: Coordinate): boolean {
+    return (
+      this.isValid(location) &&
+      this.matrix.get(location.row, location.column) === LocationStatus.EMPTY
+    )
+  }
+  public isObstacle (location: Coordinate): boolean {
+    return (
+      this.isValid(location) &&
+      this.matrix.get(location.row, location.column) === LocationStatus.OBSTACLE
+    )
+  }
+
+  public setPosition (location: Coordinate): void {
+    this.currentLocation = location
   }
 
   public calcNextMove ({
-    currentRow = this.currentRow,
-    currentColumn = this.currentColumn,
+    location = this.currentLocation,
     forceSearch = false,
-    previousPositions = []
+    previousLocations = []
   }: {
-    currentRow: number
-    currentColumn: number
+    location: Coordinate
     forceSearch: boolean
-    previousPositions: Array<any>
-  }): any {
+    previousLocations: Array<Coordinate>
+  }): Coordinate | any {
     if (
-      currentRow == this.matrix.rows - 1 &&
-      currentColumn == this.matrix.columns - 1
+      location.row == this.matrix.rows - 1 &&
+      location.column == this.matrix.columns - 1
     ) {
-      currentRow = 0
-      currentColumn = -1
+      location.row = 0
+      location.column = -1
     }
 
     let ways: Array<any> = [
       {
-        key: Direction.Nord,
-        row: currentRow + 1,
-        col: currentColumn,
+        location: <Coordinate>{
+          ...location,
+          direction: Direction.Nord,
+          row: location.row + 1
+        },
         valid: false
       },
       {
-        key: Direction.Sud,
-        row: currentRow - 1,
-        col: currentColumn,
+        location: <Coordinate>{
+          ...location,
+          direction: Direction.Sud,
+          row: location.row - 1
+        },
         valid: false
       },
       {
-        key: Direction.Est,
-        row: currentRow,
-        col: currentColumn + 1,
+        location: <Coordinate>{
+          ...location,
+          direction: Direction.Est,
+          column: location.column + 1
+        },
         valid: false
       },
       {
-        key: Direction.Ovest,
-        row: currentRow,
-        col: currentColumn - 1,
+        location: <Coordinate>{
+          ...location,
+          direction: Direction.Ovest,
+          column: location.column - 1
+        },
         valid: false
       }
     ]
 
     ways = ways.map(el => {
       if (
-        this.isValidCoordinate(el.row, el.col) === true &&
-        this.isObstacle(el.row, el.col) !== true
+        this.isValid(el.location) === true &&
+        this.isObstacle(el.location) !== true
       ) {
         if (
-          this.isNotScanned(el.row, el.col) === true ||
+          this.isNotScanned(el.location) === true ||
           (forceSearch === true &&
-            previousPositions.filter(v => v.row == el.row && v.col == el.col)
-              .length === 0)
+            previousLocations.filter(
+              v => v.row == el.row && v.column == el.column
+            ).length === 0)
         )
           el.valid = true
       }
@@ -169,51 +181,44 @@ class Surface {
     const firstValidWay = ways.filter(el => el.valid === true).shift()
 
     if (firstValidWay === undefined) {
-      this.toFile()
-      if (forceSearch === true)
+      if (forceSearch === true) {
+        this.toFile()
         throw new Error('Blocked! Look at the map.txt file for a visual output')
-      else
+      } else
         return {
           error: true
         }
     }
 
-    this.addEmpty(firstValidWay.row, firstValidWay.col)
+    this.addEmpty(firstValidWay.coordinate)
     console.log(
-      `Moving to ${firstValidWay.row} | ${firstValidWay.col} | ${firstValidWay.key}`
+      `Moving to ${firstValidWay.location.row} | ${firstValidWay.location.column} | ${firstValidWay.location.direction}`
     )
     return firstValidWay
   }
 
   public async calcJourneyRecursive (
     force: boolean = false,
-    previousPositions: Array<any> = []
+    previousLocations: Array<Coordinate> = []
   ): Promise<any> {
     if (this.isAllScanned() === true) {
-      this.toFile()
       return {
-        x: Surface.convertColumnToLongitude(this.currentColumn),
-        y: Surface.convertRowToLatitude(this.currentRow),
-        direction: this.currentDirection,
+        x: Surface.convertColumnToLongitude(this.currentLocation.column),
+        y: Surface.convertRowToLatitude(this.currentLocation.row),
+        direction: this.currentLocation.direction,
         commands: this.commands
       }
     }
 
-    const {
-      key: nextDirection,
-      row: nextRow,
-      col: nextCol,
-      error: _error
-    } = this.calcNextMove({
-      currentRow: this.currentRow,
-      currentColumn: this.currentColumn,
+    const { location: _currentLocation, error: _error } = this.calcNextMove({
+      location: this.currentLocation,
       forceSearch: force,
-      previousPositions
+      previousLocations
     })
     if (_error === true)
-      return await this.calcJourneyRecursive(true, previousPositions)
+      return await this.calcJourneyRecursive(true, previousLocations)
 
-    switch (nextDirection) {
+    switch (_currentLocation.direction) {
       case Direction.Nord:
         this.commands.push(Commands.Forward)
         break
@@ -231,107 +236,99 @@ class Surface {
         break
     }
 
-    this.currentRow = nextRow
-    this.currentColumn = nextCol
+    this.currentLocation = _currentLocation
 
-    if (force === true)
-      previousPositions.push({
-        row: this.currentRow,
-        col: this.currentColumn
-      })
+    if (force === true) previousLocations.push(_currentLocation)
 
     // Prevent Maximum call stack size exceeded error
     await timeout()
-    return await this.calcJourneyRecursive(force, previousPositions)
+    return await this.calcJourneyRecursive(force, previousLocations)
   }
 
   // =================================================
   // STATIC HELPERS
   // =================================================
-  public static convertRowToLatitude (value: number) {
-    if (value !== 0) value += 1
-    return value > unsignedLatitude
-      ? unsignedLatitude + (0 - value)
-      : unsignedLatitude - value
+  public static convertRowToLatitude (row: number): number {
+    if (row !== 0) row += 1
+    return row > unsignedLatitude
+      ? unsignedLatitude + (0 - row)
+      : unsignedLatitude - row
   }
-  public static convertColumnToLongitude (value: number) {
-    if (value !== 0) value += 1
-    return value > unsignedLongitude
-      ? value - unsignedLongitude
-      : 0 - unsignedLongitude + value
+  public static convertColumnToLongitude (column: number): number {
+    if (column !== 0) column += 1
+    return column > unsignedLongitude
+      ? column - unsignedLongitude
+      : 0 - unsignedLongitude + column
   }
-  public static convertLatitudeToRow (value: number) {
-    return unsignedLatitude - 1 + value
+  public static convertLatitudeToRow (latitude: number): number {
+    return unsignedLatitude - 1 + latitude
   }
-  public static convertLongitudeToColumn (value: number) {
-    return unsignedLongitude - 1 + value
+  public static convertLongitudeToColumn (longitude: number): number {
+    return unsignedLongitude - 1 + longitude
   }
-  public static calcObstaclePosition ({
-    row,
-    column,
-    direction
-  }: {
-    row: number
-    column: number
-    direction: string
-  }) {
-    switch (direction) {
+  public static calcObstaclePosition (position: Coordinate): Coordinate {
+    switch (position.direction) {
       case Direction.Nord:
-        row += 1
+        position = { ...position, row: position.row + 1 }
         break
       case Direction.Sud:
-        row -= 1
+        position = { ...position, row: position.row - 1 }
         break
       case Direction.Ovest:
-        column -= 1
+        position = { ...position, column: position.column - 1 }
         break
       case Direction.Est:
-        column += 1
+        position = { ...position, column: position.column + 1 }
         break
       default:
         break
     }
 
-    return {
-      row,
-      column,
-      direction
-    }
+    return position
   }
 
   // =================================================
   // OTHERS
   // =================================================
-  public isAllScanned () {
-    let result = true
-
+  public isAllScanned (): boolean {
     for (let row = 0; row < this.matrix.rows; row++) {
-      for (let col = 0; col < this.matrix.columns; col++) {
-        if (this.isScanned(row, col) !== true) result = false
+      for (let column = 0; column < this.matrix.columns; column++) {
+        if (this.isEmpty(<Coordinate>{ row, column }) !== true) return false
       }
     }
 
-    return result
+    return true
   }
   public toString = (): string => {
     let output = ''
 
     for (let row = 0; row < this.matrix.rows; row++) {
-      for (let col = 0; col < this.matrix.columns; col++) {
-        if (col != 0 && col != this.matrix.columns) output += ' | '
+      for (let column = 0; column < this.matrix.columns; column++) {
+        if (column != 0 && column != this.matrix.columns) output += ' | '
 
-        // if (row == this.currentRow && col == this.currentColumn) output += 'X'
-        // else output += this.matrix.get(row, col)
-        output += this.matrix.get(row, col)
+        if (
+          row == this.currentLocation.row &&
+          column == this.currentLocation.column
+        )
+          output += 'X'
+        else output += this.matrix.get(row, column)
+        // output += this.matrix.get(row, col)
       }
       output += '\r\n'
     }
 
     return output
   }
-  public toFile () {
+  public toFile (): void {
     fs.writeFileSync('map.txt', this.toString())
   }
 }
 
-export { unsignedLatitude, unsignedLongitude, maxRows, maxColumns, Surface }
+export {
+  unsignedLatitude,
+  unsignedLongitude,
+  maxRows,
+  maxColumns,
+  Surface,
+  Coordinate
+}

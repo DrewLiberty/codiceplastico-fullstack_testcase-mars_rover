@@ -1,29 +1,15 @@
 import express from 'express'
 import { body } from 'express-validator'
-import { Rover } from '../models/rover'
 import { Surface } from '../models/surface'
 import surfaceService from '../services/surface'
 import validationService from '../services/validation'
 
 const routes = {
-  createSurface: function (req: express.Request, res: express.Response) {
-    const rover = req.session.rover || new Rover()
-    const surface = surfaceService.create({
-      x: rover.x,
-      y: rover.y,
-      direction: rover.direction
-    })
-
-    req.session.surface = surface
-
-    res.status(201).send({
-      id: req.sessionID,
-      rover: req.session.rover,
-      surface: req.session.surface
-    })
-  },
   getJourney: async function (req: express.Request, res: express.Response) {
-    const surface = req.session.surface || new Surface()
+    const surface = req.session.surface
+
+    if (!(surface instanceof Surface)) throw new Error('Missing surface')
+
     const journey = await surfaceService.getJourney(surface)
 
     res.status(201).send({
@@ -32,8 +18,10 @@ const routes = {
     })
   },
   reportObstacle: function (req: express.Request, res: express.Response) {
-    const surface = req.session.surface || new Surface()
+    const surface = req.session.surface
     const { x, y, direction } = req.body
+
+    if (!(surface instanceof Surface)) throw new Error('Missing surface')
 
     surfaceService.reportObstacle(surface, {
       x,
@@ -47,8 +35,6 @@ const routes = {
 
 export default () => {
   const route = express.Router()
-
-  route.post('/surface', validationService.roverExists, routes.createSurface)
 
   route.get(
     '/journey',

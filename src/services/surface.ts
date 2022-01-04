@@ -1,5 +1,4 @@
-import { Surface } from '../models/surface'
-import { Direction } from '../models/rover'
+import { Surface, Coordinate } from '../models/surface'
 
 const setupService = () => {
   return {
@@ -12,9 +11,9 @@ const setupService = () => {
       y: number
       direction: string
     }): Surface {
-      const startRow = Surface.convertLatitudeToRow(y)
-      const startColumn = Surface.convertLongitudeToColumn(x)
-      return new Surface(startRow, startColumn, (<any>Direction)[direction])
+      const row = Surface.convertLatitudeToRow(y)
+      const column = Surface.convertLongitudeToColumn(x)
+      return new Surface(<Coordinate>{ row, column, direction })
     },
     async getJourney (surface: Surface) {
       return await surface.calcJourneyRecursive().then(v => v)
@@ -35,15 +34,17 @@ const setupService = () => {
       const currentColumn = Surface.convertLongitudeToColumn(x)
       const {
         row: obstacleRow,
-        column: obstacleColumn,
-        direction: obstacleDirection
+        column: obstacleColumn
       } = Surface.calcObstaclePosition({
         row: currentRow,
         column: currentColumn,
         direction
       })
 
-      surface.addObstacle(obstacleRow, obstacleColumn)
+      surface.addObstacle(<Coordinate>{
+        row: obstacleRow,
+        column: obstacleColumn
+      })
       surface.setPosition({
         row: currentRow,
         column: currentColumn,
