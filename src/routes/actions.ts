@@ -3,6 +3,7 @@ import { body } from 'express-validator'
 import { Surface } from '../models/surface'
 import surfaceService from '../services/surface'
 import validationService from '../services/validation'
+import { Direction } from '../models/rover'
 
 const routes = {
   getJourney: async function (req: express.Request, res: express.Response) {

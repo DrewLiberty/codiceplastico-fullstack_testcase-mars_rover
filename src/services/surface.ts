@@ -1,3 +1,4 @@
+import { Socket } from 'socket.io'
 import { Surface, Coordinate } from '../models/surface'
 
 const setupService = () => {
@@ -16,7 +17,12 @@ const setupService = () => {
       return new Surface(<Coordinate>{ row, column, direction })
     },
     async getJourney (surface: Surface) {
-      return await surface.calcJourneyRecursive().then(v => v)
+      return await surface.calcJourneyRecursive()
+    },
+    async getJourneyStreamed (surface: Surface, socket: Socket) {
+      return await surface.calcJourneyRecursive(false, [], message => {
+        socket.send(message)
+      })
     },
     reportObstacle (
       surface: Surface,

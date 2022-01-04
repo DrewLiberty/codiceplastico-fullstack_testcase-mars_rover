@@ -199,7 +199,8 @@ class Surface {
 
   public async calcJourneyRecursive (
     force: boolean = false,
-    previousLocations: Array<Coordinate> = []
+    previousLocations: Array<Coordinate> = [],
+    callback: (message: string) => void = () => {}
   ): Promise<any> {
     if (this.isAllScanned() === true) {
       return {
@@ -216,7 +217,7 @@ class Surface {
       previousLocations
     })
     if (_error === true)
-      return await this.calcJourneyRecursive(true, previousLocations)
+      return await this.calcJourneyRecursive(true, previousLocations, callback)
 
     switch (_currentLocation.direction) {
       case Direction.Nord:
@@ -242,7 +243,8 @@ class Surface {
 
     // Prevent Maximum call stack size exceeded error
     await timeout()
-    return await this.calcJourneyRecursive(force, previousLocations)
+    callback(this.toString())
+    return await this.calcJourneyRecursive(force, previousLocations, callback)
   }
 
   // =================================================

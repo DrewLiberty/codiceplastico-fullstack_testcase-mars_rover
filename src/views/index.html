@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Journey stream</title>
+</head>
+
+<body>
+
+  <div id="content" style="background-color: green;">
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+
+    socket.emit('getJourneyStreamed')
+
+    socket.on('message', function (message) {
+      document.getElementById("content").innerHTML = message;
+    });
+  </script>
+</body>
+
+</html>
