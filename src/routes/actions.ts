@@ -48,11 +48,11 @@ export default () => {
     '/report',
     [
       body('x')
-        .isInt({ min: -90, max: +90 })
-        .withMessage('X coordinate must be a number between -90 and +90'),
-      body('y')
         .isInt({ min: -180, max: +180 })
         .withMessage('X coordinate must be a number between -180 and +180'),
+      body('y')
+        .isInt({ min: -90, max: +90 })
+        .withMessage('Y coordinate must be a number between -90 and +90'),
       body('direction')
         .isIn(['N', 'E', 'S', 'W'])
         .withMessage('Direction value must be one of N, E, S, W')

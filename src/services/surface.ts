@@ -20,9 +20,9 @@ const setupService = () => {
       return await surface.calcJourneyRecursive()
     },
     async getJourneyStreamed (surface: Surface, socket: Socket) {
-      return await surface.calcJourneyRecursive(false, [], message => {
+      return await surface.calcJourneyRecursive(false, [], (message: any) =>
         socket.send(message)
-      })
+      )
     },
     reportObstacle (
       surface: Surface,
