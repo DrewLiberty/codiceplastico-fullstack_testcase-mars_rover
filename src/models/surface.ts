@@ -27,6 +27,7 @@ class Surface {
   public startLocation: Coordinate
   public currentLocation: Coordinate
   public commands: Array<String>
+  public destroy: Boolean = false
 
   constructor (start: Coordinate, current?: Coordinate) {
     this.matrix = Matrix.ones(maxRows, maxColumns)
@@ -200,8 +201,10 @@ class Surface {
   public async calcJourneyRecursive (
     force: boolean = false,
     previousLocations: Array<Coordinate> = [],
+    timeoutValue?: number,
     callback: (message: any) => void = () => {}
   ): Promise<any> {
+    if (this.destroy === true) return {}
     if (this.isAllScanned() === true) {
       return {
         x: Surface.convertColumnToLongitude(this.currentLocation.column),
@@ -217,7 +220,12 @@ class Surface {
       previousLocations
     })
     if (_error === true)
-      return await this.calcJourneyRecursive(true, previousLocations, callback)
+      return await this.calcJourneyRecursive(
+        true,
+        previousLocations,
+        timeoutValue,
+        callback
+      )
 
     switch (_currentLocation.direction) {
       case Direction.Nord:
@@ -242,9 +250,14 @@ class Surface {
     if (force === true) previousLocations.push(_currentLocation)
 
     // Prevent Maximum call stack size exceeded error
-    await timeout()
-    callback(this.matrix.toJSON())
-    return await this.calcJourneyRecursive(force, previousLocations, callback)
+    await timeout(timeoutValue)
+    callback(this.matrix.to1DArray())
+    return await this.calcJourneyRecursive(
+      force,
+      previousLocations,
+      timeoutValue,
+      callback
+    )
   }
 
   // =================================================

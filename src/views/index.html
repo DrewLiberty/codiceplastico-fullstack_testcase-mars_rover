@@ -4,48 +4,79 @@
 <head>
   <title>Journey stream</title>
 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          gridTemplateColumns: {
+            // Simple 16 column grid
+            '100': 'repeat(100, minmax(0, 1fr))',
+            '360': 'repeat(360, minmax(0, 1fr))'
+          },
+          gridTemplateRows: {
+            // Simple 8 row grid
+            '100': 'repeat(100, minmax(0, 1fr))',
+            '180': 'repeat(180, minmax(0, 1fr))',
+          }
+        }
+      }
+    }
+  </script>
 </head>
 
-<body class="w-screen h-screen flex flex-col">
+<body class="w-full h-full bg-gray-200 p-4">
 
-  <!-- This example requires Tailwind CSS v2.0+ -->
-  <div class="relative bg-white">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <div class="flex justify-center items-center border-b-2 border-gray-100 py-6">
-        <button type="button" onclick="start()"
-          class="text-gray-500 group bg-gray-200 rounded-md inline-flex items-center text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 py-2 px-12">
-          Start
-        </button>
-      </div>
-    </div>
-  </div>
+  <button type="button" onclick="start()"
+    class="fixed bottom-10 right-10 text-gray-700 group bg-white rounded-full inline-flex items-center text-xl font-medium hover:text-white hover:bg-cyan-400 py-4 px-24">
+    Start
+  </button>
 
-  <div class="grow grid grid-cols-360 grid-rows-180 bg-gray-500">
-    <span>01</span>
-    <span>02</span>
-    <span>03</span>
-    <span>04</span>
-    <span>05</span>
-    <span>06</span>
-  </div>
+  <div class="text-black grid grid-cols-360 grid-rows-180 gap-4 text-sm w-full h-full" id="content"></div>
 
 
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <script>
     var socket = io();
-    var $table = $('#table')
+    var $table = $('#content')
+    let tableElements = new Array(180 * 360).fill(0);
 
     function start() {
       socket.emit('getJourneyStreamed')
     }
 
+    function loadTable() {
+      tableElements = tableElements.map((value) => {
+        let element = $(`<div>${value}</div>`);
+        $table.append(element)
+
+        return element
+      })
+    }
+
+    function updateElement(index, value) {
+      tableElements[index].text(value);
+      tableElements[index].addClass('text-green-500 font-bold')
+    }
+
     socket.on('message', function (message) {
-      // document.getElementById("content").innerHTML = message;
-      // console.log(message)
+      let elements = message;
+
+      let difference = elements.map(
+        (value, index) => value ==
+          tableElements[index].text()
+          ?
+          null
+          :
+          { index, value }
+      ).filter(v => v != null);
+
+      difference.forEach(v => updateElement(v.index, v.value))
     });
+
+    loadTable();
   </script>
 </body>
 
